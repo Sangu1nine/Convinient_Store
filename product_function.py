@@ -72,9 +72,9 @@ def update_product(conn, product_name, barcode, price, quantity, expiration_day,
         print(error)
     return affected_rows
 
-def delete_product(conn, product_id):
+def delete_product(conn, id):
     query = "DELETE FROM products WHERE id = %s"
-    data = (product_id,)
+    data = (id)
     affected_rows = 0
     try:
         with conn.cursor() as cursor:
@@ -87,7 +87,7 @@ def delete_product(conn, product_id):
 
 def search_product(conn, product_name):
     query = "SELECT * FROM products WHERE product_name = %s"
-    data = (product_name,)
+    data = (product_name)
     try:
         with conn.cursor() as cursor:
             cursor.execute(query, data)
@@ -103,13 +103,13 @@ if __name__ == '__main__':
     print(__name__)
     print(read_config())
     conn = connect()
-    product_name = input('상품명을 입력하세요>>>')
-    barcode = input('바코드를 입력하세요>>>')
-    price = int(input('가격을 입력하세요>>>'))
-    quantity = int(input('재고 수량을 입력하세요>>>'))
-    expiration_day = input('유통기한을 입력하세요>>>')
-    id = int(input('상품 id를 입력하세요>>>'))
-    update_product(conn, product_name, barcode, price, quantity, expiration_day, id)
+    # product_name = input('상품명을 입력하세요>>>')
+    # barcode = input('바코드를 입력하세요>>>')
+    # price = int(input('가격을 입력하세요>>>'))
+    # quantity = int(input('재고 수량을 입력하세요>>>'))
+    # expiration_day = input('유통기한을 입력하세요>>>')
+    # id = int(input('상품 id를 입력하세요>>>'))
+    # update_product(conn, product_name, barcode, price, quantity, expiration_day, id)
     # insert_product(conn, product_name, barcode, price, quantity, expiration_day)
     # affected_rows = update_product(conn, 1, '새로운 상품명', 2000, 50) # id가 1인 상품의 정보를 변경
     # print(f'변경된 행 수: {affected_rows}')
