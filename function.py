@@ -28,17 +28,14 @@ def connect():
     return conn
 
 def query_with_fetchall(conn):
-
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM products")
         rows = cursor.fetchall()
         print('Total Row(s):', cursor.rowcount)
-
         for row in rows:
             print(row)
         return rows
-
     except Error as e:
         print(e)
 
@@ -56,12 +53,12 @@ def insert_product(conn, product_name, barcode, price, quantity, expiration_day)
     except Error as error:
         print(error)
 
-def update_product(conn, product_name, barcode, price, quantity, expiration_day):
+def update_product(conn, product_name, barcode, price, quantity, expiration_day,id):
     query = """UPDATE products
                 SET product_name = %s, barcode = %s, price = %s, quantity = %s, expiration_day = %s
                 WHERE id = %s"""
 
-    data = (product_name, barcode, price, quantity, expiration_day)
+    data = (product_name, barcode, price, quantity, expiration_day,id)
     affected_rows = 0
     try:
         with conn.cursor() as cursor:
@@ -103,15 +100,31 @@ if __name__ == '__main__':
     print(__name__)
     print(read_config())
     conn = connect()
+
+    # 상품 등록
     # product_name = input('상품명을 입력하세요>>>')
     # barcode = input('바코드를 입력하세요>>>')
     # price = int(input('가격을 입력하세요>>>'))
     # quantity = int(input('재고 수량을 입력하세요>>>'))
     # expiration_day = input('유통기한을 입력하세요>>>')
     # insert_product(conn, product_name, barcode, price, quantity, expiration_day)
-    # affected_rows = update_product(conn, 1, '새로운 상품명', 2000, 50) # id가 1인 상품의 정보를 변경
-    # print(f'변경된 행 수: {affected_rows}')
+
+    # 상품 수정
+    # product_name = input('수정할 상품명을 입력하세요>>>')
+    # barcode = input('바코드를 입력하세요>>>')
+    # price = int(input('가격을 입력하세요>>>')
+    # quantity = int(input('재고 수량을 입력하세요>>>')
+    # expiration_day = input('유통기한을 입력하세요>>>')
+    # id = int(input('제품 id를 입력하세요 >>> ')
+    # update_product(conn, product_name, barcode, price, quantity, expiration_day)
+
+    # 상품 삭제
+    # product_id = input('삭제할 제품 id를 입력하세요>>>')
+    # delete_product(conn, product_id)
+
+    # 상품 검색
     # product = input('검색할 상품명을 입력하세요>>>')
     # search_product(conn, product)
+
     query_with_fetchall(conn)
     conn.close()
