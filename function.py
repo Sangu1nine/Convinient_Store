@@ -85,7 +85,20 @@ def delete_product(conn, product_id):
         print(error)
     return affected_rows
 
-def search_product
+def search_product(conn, product_name):
+    query = "SELECT * FROM products WHERE product_name = %s"
+    data = (product_name,)
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, data)
+            rows = cursor.fetchall()
+            print('Total Row(s):', cursor.rowcount)
+            for row in rows:
+                print(row)
+            return rows
+    except Error as error:
+        print(error)
+
 if __name__ == '__main__':
     print(__name__)
     print(read_config())
@@ -98,5 +111,7 @@ if __name__ == '__main__':
     # insert_product(conn, product_name, barcode, price, quantity, expiration_day)
     # affected_rows = update_product(conn, 1, '새로운 상품명', 2000, 50) # id가 1인 상품의 정보를 변경
     # print(f'변경된 행 수: {affected_rows}')
+    # product = input('검색할 상품명을 입력하세요>>>')
+    # search_product(conn, product)
     query_with_fetchall(conn)
     conn.close()
