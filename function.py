@@ -15,56 +15,74 @@ def read_config(filename='app.ini', section='mysql'):
 
 def connect():
     conn = None
+    config = read_config()
     try:
         print('MYSQL 데이터베이스에 연결 중...')
-        config = read_config()
         conn = MySQLConnection(**config)
+        if conn.is_connected():
+            print('Connection is established.')
+        else:
+            print('Connection is failed.')
     except Error as error:
         print(error)
     return conn
 
 def query_with_fetchall(conn):
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM products")
-    rows = cursor.fetchall()
-    print('총 행(들):', cursor.rowcount)
-    for row in rows:
-        print(row)
-    return rows
 
-def insert_product(conn, product_name, barcode, price, stock_quantity):
-    query = '''INSERT INTO products(product_name, barcode, price, stock_quantity)
-                VALUES(%s, %s, %s, %s)'''
-    args = (product_name, barcode, price, stock_quantity)
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM products")
+        rows = cursor.fetchall()
+        print('Total Row(s):', cursor.rowcount)
+
+        for row in rows:
+            print(row)
+        return rows
+
+    except Error as e:
+        print(e)
+
+def insert_product(conn, product_name, barcode, price, quantity, expiration_day):
+    query = '''INSERT INTO products(product_name, barcode, price, quantity, expiration_day)
+                VALUES(%s, %s, %s, %s, %s)'''
+    args = (product_name, barcode, price, quantity, expiration_day)
     product_id = None
-    with conn.cursor() as cursor:
-        cursor.execute(query, args)
-        product_id = cursor.lastrowid
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, args)
+            product_id = cursor.lastrowid
+        conn.commit()
+        return product_id
+    except Error as error:
+        print(error)
 
-    conn.commit()
-    return product_id
-
-def update_product(conn, product_id, product_name, price, stock_quantity):
+def update_product(conn, product_name, barcode, price, quantity, expiration_day):
     query = """UPDATE products
-                SET product_name = %s, price = %s, stock_quantity = %s
+                SET product_name = %s, barcode = %s, price = %s, quantity = %s, expiration_day = %s
                 WHERE id = %s"""
 
-    data = (product_name, price, stock_quantity, product_id)
+    data = (product_name, barcode, price, quantity, expiration_day)
     affected_rows = 0
-    with conn.cursor() as cursor:
-        cursor.execute(query, data)
-        affected_rows = cursor.rowcount
-
-    conn.commit()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, data)
+            affected_rows = cursor.rowcount
+        conn.commit()
+    except Error as error:
+        print(error)
+    return affected_rows
 
 def delete_product(conn, product_id):
     query = "DELETE FROM products WHERE id = %s"
     data = (product_id,)
     affected_rows = 0
-    with conn.cursor() as cursor:
-        cursor.execute(query, data)
-        affected_rows = cursor.rowcount
-    conn.commit()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, data)
+            affected_rows = cursor.rowcount
+        conn.commit()
+    except Error as error:
+        print(error)
     return affected_rows
 
 if __name__ == '__main__':
@@ -74,10 +92,10 @@ if __name__ == '__main__':
     product_name = input('상품명을 입력하세요>>>')
     barcode = input('바코드를 입력하세요>>>')
     price = int(input('가격을 입력하세요>>>'))
-    stock_quantity = int(input('재고 수량을 입력하세요>>>'))
-    insert_product(conn, product_name, barcode, price, stock_quantity)
-    affected_rows = update_product(conn, 1, '새로운 상품명', 2000, 50) # id가 1인 상품의 정보를 변경
-    print(f'변경된 행 수: {affected_rows}')
+    quantity = int(input('재고 수량을 입력하세요>>>'))
+    expiration_day = input('유통기한을 입력하세요>>>')
+    insert_product(conn, product_name, barcode, price, quantity, expiration_day)
+    # affected_rows = update_product(conn, 1, '새로운 상품명', 2000, 50) # id가 1인 상품의 정보를 변경
+    # print(f'변경된 행 수: {affected_rows}')
     query_with_fetchall(conn)
-
     conn.close()
