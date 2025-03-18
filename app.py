@@ -1,5 +1,5 @@
 from flask import Flask, render_template, redirect
-from function import insert_product, update_product, delete_product, query_with_fetchall
+from pythonproject.Convinient_Store.product_function import insert_product, update_product, delete_product, query_with_fetchall
 
 app = Flask(__name__)
 
