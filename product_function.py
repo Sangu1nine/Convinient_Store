@@ -58,11 +58,7 @@ def update_product(conn, product_name, barcode, price, quantity, expiration_day,
                 SET product_name = %s, barcode = %s, price = %s, quantity = %s, expiration_day = %s
                 WHERE id = %s"""
 
-<<<<<<< HEAD:function.py
-    data = (product_name, barcode, price, quantity, expiration_day,id)
-=======
     data = (product_name, barcode, price, quantity, expiration_day, id)
->>>>>>> 81769442c228489c827efe695436bfe301bfcfe8:product_function.py
     affected_rows = 0
     try:
         with conn.cursor() as cursor:
@@ -125,8 +121,8 @@ if __name__ == '__main__':
     # update_product(conn, product_name, barcode, price, quantity, expiration_day)
 
     # 상품 삭제
-    # product_id = input('삭제할 제품 id를 입력하세요>>>')
-    # delete_product(conn, product_id)
+    id = int(input('삭제할 제품 id를 입력하세요>>>'))
+    delete_product(conn, id)
 
     # 상품 검색
     # product = input('검색할 상품명을 입력하세요>>>')
