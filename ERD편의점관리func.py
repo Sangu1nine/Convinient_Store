@@ -59,31 +59,53 @@ def add_product(conn):
         if product_name == "0":
             return
 
-        # 제품명이 이미 존재하는지 확인
-        query_check = "SELECT Product_id, Quantity FROM Products WHERE Product_name = %s"
+        # 1️⃣ 오늘 날짜 확인 및 `Daily_Account` 자동 추가
+        cursor.execute("SELECT COUNT(*) FROM Daily_Account WHERE `Date` = CURDATE()")
+        date_exists = cursor.fetchone()[0]
+
+        if date_exists == 0:
+            cursor.execute("INSERT INTO Daily_Account (`Date`, Sales, Costs, Funds) VALUES (CURDATE(), 0, 0, 1000000)")
+            conn.commit()
+            print(f"✅ `{datetime.datetime.today().strftime('%Y-%m-%d')}` 날짜를 Daily_Account에 추가했습니다.")
+
+        # 2️⃣ 제품명이 이미 존재하는지 확인
+        query_check = "SELECT Product_id, Price, Quantity FROM Products WHERE Product_name = %s"
         cursor.execute(query_check, (product_name,))
         product = cursor.fetchone()
 
         if product:
             # 기존 제품 존재 → 수량 추가
-            product_id = product[0]
-            existing_quantity = product[1]
-            print(f"🔍 기존 제품 발견! (ID: {product_id}, 현재 수량: {existing_quantity})")
-            
+            product_id, price, existing_quantity = product
+            print(f"🔍 기존 제품 발견! (ID: {product_id}, 현재 수량: {existing_quantity}, 가격: {price}원)")
+
             try:
                 add_quantity = int(input("추가할 수량을 입력하세요: ").strip())
                 if add_quantity == 0:
                     return
                 
+                # 제품 수량 업데이트
                 query_update = "UPDATE Products SET Quantity = Quantity + %s WHERE Product_id = %s"
                 cursor.execute(query_update, (add_quantity, product_id))
                 conn.commit()
+
                 print(f"✅ 제품 '{product_name}'의 수량이 {add_quantity}개 추가되었습니다. (총 {existing_quantity + add_quantity}개)")
+
+                # 3️⃣ `Daily_Account` 비용 반영 (기존 제품 수량 추가 비용)
+                additional_cost = add_quantity * price
+                query_update_costs = """
+                UPDATE Daily_Account
+                SET Costs = COALESCE(Costs, 0) + %s
+                WHERE Date = CURDATE();
+                """
+                cursor.execute(query_update_costs, (additional_cost,))
+                conn.commit()
+                print(f"📉 비용이 {additional_cost}원 증가했습니다.")
+
             except ValueError:
                 print("❌ 숫자만 입력하세요!")
             return  # 수량 추가 후 종료
 
-        # 기존 제품이 없으면 새로 추가
+        # 4️⃣ 기존 제품이 없으면 새로 추가
         barcode = input("바코드: ").strip()
         if barcode == "0":
             return
@@ -113,10 +135,22 @@ def add_product(conn):
         conn.commit()
         print(f"✅ 제품 '{product_name}' 추가 완료!")
 
-    except Error as e:
+        # 5️⃣ `Daily_Account` 비용 반영 (새 제품 추가 비용)
+        new_product_cost = price * quantity
+        query_update_costs = """
+        UPDATE Daily_Account
+        SET Costs = COALESCE(Costs, 0) + %s
+        WHERE Date = CURDATE();
+        """
+        cursor.execute(query_update_costs, (new_product_cost,))
+        conn.commit()
+        print(f"📉 비용이 {new_product_cost}원 증가했습니다.")
+
+    except mysql.connector.Error as e:
         print(f"❌ 오류 발생: {e}")
 
     finally:
+        update_funds(conn)  # 자본 업데이트
         cursor.close()  # 오류 발생 여부와 상관없이 커서를 닫음
 
 def list_products(conn):
@@ -132,7 +166,7 @@ def list_products(conn):
     cursor.close()
 
 def add_order(conn):
-    """ 고객이 제품을 주문하면 주문을 처리하는 함수 """
+    """ 고객이 제품을 주문하면 주문을 처리하는 함수 (재고 관리 포함) """
 
     cursor = conn.cursor()
 
@@ -143,8 +177,9 @@ def add_order(conn):
     for assistant in assistants:
         print(f"{assistant[0]}: {assistant[1]}")
     
-    assistant_id = input("직원 ID 입력: ").strip()
+    assistant_id = input("직원 ID 입력 (취소: 0): ").strip()
     if assistant_id == "0":
+        print("🚫 주문이 취소되었습니다.")
         return
 
     # 2️⃣ 고객 선택
@@ -154,30 +189,40 @@ def add_order(conn):
     for customer in customers:
         print(f"{customer[0]}: {customer[1]}")
     
-    customer_id = input("고객 ID 입력: ").strip()
+    customer_id = input("고객 ID 입력 (취소: 0): ").strip()
     if customer_id == "0":
+        print("🚫 주문이 취소되었습니다.")
         return
 
-    # 3️⃣ 주문 추가 (Orders 테이블에 추가)
+    # 3️⃣ 오늘 날짜 확인 및 `Daily_Account` 자동 추가
+    cursor.execute("SELECT COUNT(*) FROM Daily_Account WHERE `Date` = CURDATE()")
+    date_exists = cursor.fetchone()[0]
+
+    if date_exists == 0:
+        cursor.execute("INSERT INTO Daily_Account (`Date`, Sales, Costs, Funds) VALUES (CURDATE(), 0, 0, 1000000)")
+        conn.commit()
+        print(f"✅ `{cursor.lastrowid}` 날짜를 Daily_Account에 추가했습니다.")
+
+    # 4️⃣ 주문 추가 (Orders 테이블에 추가)
     query_order = """
-    INSERT INTO Orders (Customer_id, Assistant_id, Date) 
-    VALUES (%s, %s, CURDATE())"""
+    INSERT INTO Orders (Customer_id, Assistant_id, Date, Total_Price) 
+    VALUES (%s, %s, CURDATE(), 0)"""
     cursor.execute(query_order, (customer_id, assistant_id))
     conn.commit()
 
-    # 4️⃣ 방금 추가된 Order_id 가져오기
+    # 5️⃣ 방금 추가된 Order_id 가져오기
     cursor.execute("SELECT LAST_INSERT_ID()")
     order_id = cursor.fetchone()[0]
     print(f"\n✅ 주문이 생성되었습니다. (Order ID: {order_id})")
 
-    # 5️⃣ 제품 선택 및 주문 상세 추가
+    # 6️⃣ 제품 선택 및 주문 상세 추가
     total_price = 0
     while True:
         print("\n📌 주문할 제품을 선택하세요:")
-        cursor.execute("SELECT Product_id, Product_name, Price FROM Products")
+        cursor.execute("SELECT Product_id, Product_name, Price, Quantity FROM Products")
         products = cursor.fetchall()
         for product in products:
-            print(f"{product[0]}: {product[1]} - {product[2]}원")
+            print(f"{product[0]}: {product[1]} - {product[2]}원 (재고: {product[3]}개)")
 
         product_id = input("제품 ID 입력 (완료: 0): ").strip()
         if product_id == "0":
@@ -185,9 +230,19 @@ def add_order(conn):
         
         quantity = int(input("수량 입력: ").strip())
 
-        # 제품 가격 가져오기
-        cursor.execute("SELECT Price FROM Products WHERE Product_id = %s", (product_id,))
-        price = cursor.fetchone()[0]
+        # 제품 정보 가져오기
+        cursor.execute("SELECT Price, Quantity FROM Products WHERE Product_id = %s", (product_id,))
+        product_data = cursor.fetchone()
+        if not product_data:
+            print("🚫 존재하지 않는 제품입니다. 다시 입력하세요.")
+            continue
+
+        price, stock = product_data
+
+        # 재고 확인
+        if quantity > stock:
+            print(f"🚫 재고 부족! 현재 {stock}개만 주문 가능합니다.")
+            continue
 
         # `Order_Detail` 테이블에 추가
         query_detail = """
@@ -196,22 +251,30 @@ def add_order(conn):
         """
         cursor.execute(query_detail, (order_id, product_id, price, quantity))
         total_price += price * quantity
-        print(f"✅ 제품 {product_id} {quantity}개 추가 완료!")
 
-    # 6️⃣ 총 금액을 Orders 테이블에 업데이트
+        # `Products` 테이블의 재고 차감
+        query_update_stock = """
+        UPDATE Products SET Quantity = Quantity - %s WHERE Product_id = %s
+        """
+        cursor.execute(query_update_stock, (quantity, product_id))
+
+        print(f"✅ 제품 {product_id} {quantity}개 추가 완료! (재고 업데이트됨)")
+
+    # 7️⃣ 총 금액을 Orders 테이블에 업데이트
     query_update_total = """
     UPDATE Orders SET Total_Price = %s WHERE Order_id = %s"""
     cursor.execute(query_update_total, (total_price, order_id))
     conn.commit()
     print(f"\n💰 주문 총액: {total_price}원")
 
-    # 7️⃣ Daily_Account 테이블의 매출 반영
+    # 8️⃣ Daily_Account 테이블의 매출 반영
     query_update_sales = """
     UPDATE Daily_Account
     SET Sales = COALESCE(Sales, 0) + %s
     WHERE Date = CURDATE();
     """
     cursor.execute(query_update_sales, (total_price,))
+    update_funds(conn)  # 자본 업데이트
     conn.commit()
     print("\n📈 매출이 업데이트되었습니다.")
 
@@ -225,7 +288,7 @@ def list_orders(conn):
 
     print("\n🛒 주문 목록:")
     for row in rows:
-        print(f"주문 ID: {row[0]}, 고객 ID: {row[1]}, 점원 ID: {row[2]}, 날짜: {row[3]}")
+        print(f"주문 ID: {row[0]}, 고객 ID: {row[1]}, 가격: {row[2]}, 점원 ID: {row[3]}, 날짜: {row[4]}")
 
     cursor.close()
 
@@ -234,7 +297,7 @@ def display_assistants(conn):
     cursor = conn.cursor()
     
     # 📋 직원 목록 가져오기
-    query = "SELECT Assistant_id, Name, Rank FROM Assistant"
+    query = "SELECT Assistant_id, Name, `Rank` FROM Assistant"
     cursor.execute(query)
     assistants = cursor.fetchall()
 
@@ -277,7 +340,35 @@ def display_customers(conn):
 
     cursor.close()
 
+def update_funds(conn):
+    """ Daily_Account의 Funds(자본)을 날짜별로 누적 업데이트하는 함수 """
+    cursor = conn.cursor()
 
+    # 1️⃣ 모든 날짜를 오름차순 정렬하여 가져오기
+    cursor.execute("SELECT `Date`, Sales, Costs FROM Daily_Account ORDER BY `Date` ASC")
+    daily_records = cursor.fetchall()
+
+    funds = 1000000  # 초기 자본
+    for date, sales, costs in daily_records:
+        funds += sales - costs  # 매일 자본 계산
+
+        # 2️⃣ 해당 날짜의 `Funds` 업데이트
+        cursor.execute("UPDATE Daily_Account SET Funds = %s WHERE `Date` = %s", (funds, date))
+
+    conn.commit()
+    cursor.close()
+    print("✅ `Funds`가 누적 업데이트되었습니다.")
+
+def display_account(conn):
+    """ 장부 조회 """
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Daily_Account")
+    rows = cursor.fetchall()
+
+    print("\n📈 장부 조회:")
+    for row in rows:
+        print(f"날짜: {row[0]}, 매출: {row[1]}원, 지출: {row[2]}원, 보유 자금: {row[3]}원")
+    cursor.close()
 
 if __name__ == "__main__":
     conn = connect()
@@ -299,8 +390,11 @@ if __name__ == "__main__":
             elif choice == "6":
                 display_customers(conn)
             elif choice == "7":
+                display_account(conn)
+            elif choice == "8":
                 print("🔚 프로그램을 종료합니다.")
                 conn.close()
                 break
             else:
                 print("❌ 올바른 메뉴를 선택하세요.")
+
