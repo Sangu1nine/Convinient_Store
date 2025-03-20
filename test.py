@@ -43,7 +43,7 @@ def query_with_fetchall(conn):
     except Error as e:
         print(e)
 
-def insert_product(products):
+def insert_product(conn, products):
     query1 = '''INSERT INTO products(product_name, barcode, price, quantity, expiration_day)
                 VALUES(%s, %s, %s, %s, %s)'''
     query2 = """UPDATE products
@@ -62,7 +62,7 @@ def insert_product(products):
                 print("숫자만 입력해주세요!")  # 숫자가 아니면 다시 입력 요청
         found = False  # 우선적으로 책 검색
         for product in products: # 도서관에 이미 있던 도서명과 일치하면 found = True로 바꾸기
-            if product[1] == product_name:
+            if product[2] == product_name:
                 with conn.cursor() as cursor:
                     cursor.execute(query2, args2 + (product[0],))
                     conn.commit()
@@ -122,7 +122,6 @@ def update_product(products):
             return product_id
     except Error as error:
         print(error)
-
 
 if __name__ == '__main__' :
     read_config()

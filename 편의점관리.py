@@ -21,7 +21,7 @@ while True:
 
     # 1. 상품 추가
     if menu == '1':
-        products = pf.insert_product(products)
+        products = pf.insert_product(conn, products)
 
     # # 2. 상품 검색
     # elif menu == '2':

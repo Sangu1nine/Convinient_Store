@@ -64,3 +64,114 @@
 금액 Price
 제고 Quantity
 유통기한 Expiration_date
+
+
+-- drop database convinient_store;
+
+CREATE DATABASE /*!32312 IF NOT EXISTS*/`convinient_store` /*!40100 DEFAULT CHARACTER SET utf8mb4 */; 
+
+use convinient_store;
+
+CREATE DATABASE IF NOT EXISTS convinient_store DEFAULT CHARACTER SET utf8mb4; 
+USE convinient_store;
+
+CREATE TABLE `Customers` (
+	`Customer_id` INT AUTO_INCREMENT PRIMARY KEY,
+	`Name` VARCHAR(10) NULL,
+	`Birth` DATE NULL,
+	`Phone` VARCHAR(15) NULL,
+	`Email` VARCHAR(30) NULL,
+	`Address` VARCHAR(30) NULL,
+	`Grade` VARCHAR(6) NULL,
+	`Costs` INT NULL
+);
+
+CREATE TABLE `Assistant` (
+	`Assistant_id` INT AUTO_INCREMENT PRIMARY KEY,
+	`Name` VARCHAR(15) NULL,
+	`Field2` VARCHAR(10) NULL
+);
+
+CREATE TABLE `Daily_Account` (
+	`Date` DATE NOT NULL PRIMARY KEY,
+	`Sales` INT NULL,
+	`Costs` INT NULL,
+	`Funds` INT NULL
+);
+
+CREATE TABLE `Place_orders` (
+	`Place_id` INT AUTO_INCREMENT PRIMARY KEY,
+	`Assistant_id` INT NOT NULL,
+	`Total_Price` INT NULL,
+	`Date` DATE NOT NULL
+);
+
+CREATE TABLE `Products` (
+	`Product_id` INT AUTO_INCREMENT PRIMARY KEY,
+	`Product_name` VARCHAR(30) NULL,
+	`Barcode` VARCHAR(13) NULL,
+	`Price` INT NULL,
+	`Quantity` INT NULL,
+	`Expiration_date` DATE NULL
+);
+
+CREATE TABLE `Place_Order_Detail` (
+	`Product_id` INT NOT NULL,
+	`Place_id` INT NOT NULL,
+	`Field` VARCHAR(30) NULL,
+	`Field2` INT NULL,
+	`Field3` INT NULL,
+    PRIMARY KEY (Product_id, Place_id)
+);
+
+CREATE TABLE `Orders` (
+	`Order_id` INT AUTO_INCREMENT PRIMARY KEY,
+	`Customer_id` INT NOT NULL,
+	`Total_Price` INT NULL,
+	`Assistant_id` INT NOT NULL,
+	`Date` DATE NOT NULL
+);
+
+CREATE TABLE `Order_Detail` (
+	`Order_id` INT NOT NULL,
+	`Product_id` INT NOT NULL,
+	`Price` INT NULL,
+	`Quantity` INT NULL,
+    PRIMARY KEY (Order_id, Product_id)
+);
+
+ALTER TABLE Place_orders 
+ADD CONSTRAINT FK_Daily_Account_Place FOREIGN KEY (`Date`) 
+REFERENCES Daily_Account (`Date`);
+
+ALTER TABLE Place_orders 
+ADD CONSTRAINT FK_Assistant_Place FOREIGN KEY (Assistant_id) 
+REFERENCES Assistant (Assistant_id);
+
+ALTER TABLE Place_Order_Detail 
+ADD CONSTRAINT FK_Place_Order FOREIGN KEY (Place_id) 
+REFERENCES Place_orders (Place_id);
+
+ALTER TABLE Place_Order_Detail 
+ADD CONSTRAINT FK_Products_Place FOREIGN KEY (Product_id) 
+REFERENCES Products (Product_id);
+
+ALTER TABLE Orders
+ADD CONSTRAINT FK_Customers_Orders FOREIGN KEY (Customer_id) 
+REFERENCES Customers (Customer_id);
+
+ALTER TABLE Orders
+ADD CONSTRAINT FK_Assistant_Orders FOREIGN KEY (Assistant_id) 
+REFERENCES Assistant (Assistant_id);
+
+ALTER TABLE Orders
+ADD CONSTRAINT FK_Daily_Account_Orders FOREIGN KEY (`Date`) 
+REFERENCES Daily_Account (`Date`);
+
+ALTER TABLE Order_Detail 
+ADD CONSTRAINT FK_Orders_OrderDetail FOREIGN KEY (Order_id) 
+REFERENCES Orders (Order_id);
+
+ALTER TABLE Order_Detail 
+ADD CONSTRAINT FK_Products_OrderDetail FOREIGN KEY (Product_id) 
+REFERENCES Products (Product_id);
