@@ -1,66 +1,42 @@
-점원정보 입력
-점원 아이디 Assistent_id
-점원 이름 name
-직책 Field2
-----------------------------
-발주내역 정보 입력
-발주번호 Place_id
-점원 아이디 Assistent_id
-지출 Total_Price
-날짜 Date
------------------------------
-제품발주 상세 정보 입력
-제품번호 Product_id
-발주번호 Place_id
-제품명 Product_name
-가격 price
-수량 Quantity
------------------------------
-날짜 Date
-매출 Sales
-지출 Costs
-총보유 자금 Funds
+# Convenience Store Management System - Modeling
 
-고객정보 입력
---------------
-고객 아이디 Customer_id
-이름 NAME 
-생일 Birth 
-전화번호 Phone
-이메일 Email
-주소 Eddress
-주소 고객등급 Grade
-총 지출액수 Costs 
---------------
+편의점 시스템은 제품 관리, 주문, 고객 정보, 매출 및 비용 등의 데이터를 효율적으로 관리할 수 있도록 설계되었습니다. 주요 테이블과 관계는 다음과 같습니다.
 
-주문내역(영수증) 입력
+---
 
-------------------
-주문번호 Order_id
-고객 아이디 customer_id
-총 금액 Total_Price
-점원 아이디 Assistent_id
-날짜 Date
-------------------
+## 1. 주요 테이블 설명
 
+| 테이블명         | 설명                                           |
+|-----------------|----------------------------------------------|
+| `Products`      | 편의점에서 판매하는 제품 정보를 저장         |
+| `Orders`        | 고객이 제품을 구매할 때 발생하는 주문 정보를 저장 |
+| `Order_Detail`  | 주문별 세부 제품 정보(제품명, 수량, 가격)를 저장 |
+| `Customers`     | 고객의 기본 정보(이름, 연락처, 이메일 등)를 저장 |
+| `Assistent`     | 편의점 직원 정보를 저장                        |
+| `Daily_Account` | 일별 매출, 비용, 잔고 정보를 저장             |
+| `Place_orders`  | 제품 입고 주문 정보를 저장                    |
+| `Place_Order_Detail` | 입고된 제품의 상세 정보를 저장           |
 
-주문 상세 내역(영수증 1줄 1줄씩)
+---
 
-----------------
-주문번호 Order_id
-제품번호 Product_id
-제품명 Product_name
-금액 Price
-수량 Quantity
+## 2. 테이블 관계 설명
 
-----------------
+### ✅ `Products`와 `Order_Detail`
+- 하나의 제품은 여러 주문에 포함될 수 있음 → **1:N 관계**
+- `Order_Detail`에서 `Product_id`를 **외래키(FK)**로 참조
 
-진열장
+### ✅ `Orders`와 `Order_Detail`
+- 한 번의 주문은 여러 개의 제품을 포함할 수 있음 → **1:N 관계**
+- `Order_Detail`에서 `Order_id`를 **외래키(FK)**로 참조
 
------------------
-제품번호 Product_id
-제품명 Product_name
-바코드 Barcode
-금액 Price
-제고 Quantity
-유통기한 Expiration_date
+### ✅ `Customers`와 `Orders`
+- 한 명의 고객이 여러 주문을 할 수 있음 → **1:N 관계**
+- `Orders`에서 `customer_id`를 **외래키(FK)**로 참조
+
+### ✅ `Place_orders`와 `Place_Order_Detail`
+- 한 번의 제품 입고 주문(`Place_orders`)이 여러 개의 제품을 포함할 수 있음 → **1:N 관계**
+- `Place_Order_Detail`에서 `Place_id`를 **외래키(FK)**로 참조
+
+### ✅ `Products`와 `Place_Order_Detail`
+- 하나의 제품이 여러 번 입고될 수 있음 → **1:N 관계**
+- `Place_Order_Detail`에서 `Product_id`를 **외래키(FK)**로 참조
