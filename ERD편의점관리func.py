@@ -229,6 +229,31 @@ def list_orders(conn):
     cursor.close()
 
 
+# DB 연결 (본인 환경에 맞게 수정)
+conn = pymysql.connect(
+    host='localhost',
+    user='root',
+    password='yourpassword',
+    database='yourdatabase',
+    charset='utf8mb4'
+)
+cursor = conn.cursor()
+
+# 등급 업데이트 쿼리 실행
+cursor.execute("UPDATE Customers SET Grade = 'VIP' WHERE Costs >= 500000;")
+cursor.execute("UPDATE Customers SET Grade = 'Gold' WHERE Costs >= 200000 AND Costs < 500000;")
+cursor.execute("UPDATE Customers SET Grade = 'Silver' WHERE Costs >= 100000 AND Costs < 200000;")
+cursor.execute("UPDATE Customers SET Grade = 'Bronze' WHERE Costs < 100000;")
+
+# 변경 사항 저장
+conn.commit()
+
+# 연결 종료
+cursor.close()
+conn.close()
+
+print("고객 등급 업데이트 완료!")
+
 if __name__ == "__main__":
     conn = connect()
     if conn:
