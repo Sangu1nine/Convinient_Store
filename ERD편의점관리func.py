@@ -49,6 +49,31 @@ def display():
     choice = input(menu).strip()
     return None if choice == "0" else choice
 
+def update_place_order_total(conn):
+    """Place_orders 테이블의 Total_Price를 Place_Order_Detail의 가격 총합으로 업데이트"""
+    try:
+        cursor = conn.cursor()
+        query = """
+        UPDATE Place_orders po
+        JOIN (
+            SELECT pod.Place_id, SUM(pod.Quantity * p.Price) AS total_price
+            FROM Place_Order_Detail pod
+            JOIN Products p ON pod.Product_id = p.Product_id
+            GROUP BY pod.Place_id
+        ) AS pod_total
+        ON po.Place_id = pod_total.Place_id
+        SET po.Total_Price = pod_total.total_price;
+        """
+        cursor.execute(query)
+        conn.commit()
+        print("✅ `Place_orders`의 `Total_Price`가 업데이트되었습니다.")
+
+    except Error as e:
+        print(f"❌ 오류 발생: {e}")
+
+    finally:
+        cursor.close()
+
 def add_product(conn):
     """ 새 제품 추가 (중복된 제품이면 수량만 증가) """
     try:
@@ -103,6 +128,9 @@ def add_product(conn):
 
             except ValueError:
                 print("❌ 숫자만 입력하세요!")
+            
+            # 📌 `Place_orders`의 `Total_Price` 업데이트 실행
+            update_place_order_total(conn)
             return  # 수량 추가 후 종료
 
         # 4️⃣ 기존 제품이 없으면 새로 추가
@@ -146,11 +174,12 @@ def add_product(conn):
         conn.commit()
         print(f"📉 비용이 {new_product_cost}원 증가했습니다.")
 
-    except mysql.connector.Error as e:
+    except Error as e:
         print(f"❌ 오류 발생: {e}")
 
     finally:
         update_funds(conn)  # 자본 업데이트
+        update_place_order_total(conn)  # 발주 총 가격 업데이트
         cursor.close()  # 오류 발생 여부와 상관없이 커서를 닫음
 
 def list_products(conn):
@@ -166,7 +195,7 @@ def list_products(conn):
     cursor.close()
 
 def add_order(conn):
-    """ 고객이 제품을 주문하면 주문을 처리하는 함수 (재고 관리 포함) """
+    """ 고객이 제품을 주문하면 주문을 처리하는 함수 (재고 관리 포함, 고객 비용 업데이트 추가) """
 
     cursor = conn.cursor()
 
@@ -184,10 +213,10 @@ def add_order(conn):
 
     # 2️⃣ 고객 선택
     print("\n📌 주문 고객 선택:")
-    cursor.execute("SELECT Customer_id, Name FROM Customers")
+    cursor.execute("SELECT Customer_id, Name, Costs FROM Customers")
     customers = cursor.fetchall()
     for customer in customers:
-        print(f"{customer[0]}: {customer[1]}")
+        print(f"{customer[0]}: {customer[1]} (누적 비용: {customer[2]}원)")
     
     customer_id = input("고객 ID 입력 (취소: 0): ").strip()
     if customer_id == "0":
@@ -267,7 +296,17 @@ def add_order(conn):
     conn.commit()
     print(f"\n💰 주문 총액: {total_price}원")
 
-    # 8️⃣ Daily_Account 테이블의 매출 반영
+    # 8️⃣ 고객 비용(`Costs`) 업데이트
+    query_update_customer_costs = """
+    UPDATE Customers
+    SET Costs = COALESCE(Costs, 0) + %s
+    WHERE Customer_id = %s;
+    """
+    cursor.execute(query_update_customer_costs, (total_price, customer_id))
+    conn.commit()
+    print(f"📊 고객 ID {customer_id}의 누적 비용이 {total_price}원 증가했습니다.")
+
+    # 9️⃣ Daily_Account 테이블의 매출 반영
     query_update_sales = """
     UPDATE Daily_Account
     SET Sales = COALESCE(Sales, 0) + %s
@@ -317,10 +356,10 @@ def display_customers(conn):
     cursor = conn.cursor()
 
     # 🔄 등급 업데이트 쿼리 실행 (Costs에 따라 자동 반영)
-    cursor.execute("UPDATE Customers SET Grade = 'VIP' WHERE Costs >= 500000;")
-    cursor.execute("UPDATE Customers SET Grade = 'Gold' WHERE Costs >= 200000 AND Costs < 500000;")
-    cursor.execute("UPDATE Customers SET Grade = 'Silver' WHERE Costs >= 100000 AND Costs < 200000;")
-    cursor.execute("UPDATE Customers SET Grade = 'Bronze' WHERE Costs < 100000;")
+    cursor.execute("UPDATE Customers SET Grade = 'VIP' WHERE Costs >= 300000;")
+    cursor.execute("UPDATE Customers SET Grade = 'Gold' WHERE Costs >= 100000 AND Costs < 300000;")
+    cursor.execute("UPDATE Customers SET Grade = 'Silver' WHERE Costs >= 50000 AND Costs < 100000;")
+    cursor.execute("UPDATE Customers SET Grade = 'Bronze' WHERE Costs < 50000;")
     conn.commit()
     print("✅ 고객 등급이 최신 상태로 업데이트되었습니다.")
 
@@ -397,4 +436,3 @@ if __name__ == "__main__":
                 break
             else:
                 print("❌ 올바른 메뉴를 선택하세요.")
-
