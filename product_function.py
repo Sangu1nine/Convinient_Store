@@ -28,17 +28,14 @@ def connect():
     return conn
 
 def query_with_fetchall(conn):
-
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM products")
         rows = cursor.fetchall()
         print('Total Row(s):', cursor.rowcount)
-
         for row in rows:
             print(row)
         return rows
-
     except Error as e:
         print(e)
 
@@ -103,6 +100,7 @@ if __name__ == '__main__':
     print(__name__)
     print(read_config())
     conn = connect()
+
     # product_name = input('상품명을 입력하세요>>>')
     # barcode = input('바코드를 입력하세요>>>')
     # price = int(input('가격을 입력하세요>>>'))
@@ -115,5 +113,6 @@ if __name__ == '__main__':
     # print(f'변경된 행 수: {affected_rows}')
     # product = input('검색할 상품명을 입력하세요>>>')
     # search_product(conn, product)
+
     query_with_fetchall(conn)
     conn.close()
