@@ -161,7 +161,7 @@ def list_products(conn):
     
     print("\n📦 제품 목록:")
     for row in rows:
-        print(f"ID: {row[0]}, 이름: {row[2]}, 가격: {row[3]}, 재고: {row[4]}")
+        print(f"ID: {row[0]}, 이름: {row[1]}, 바코드: {row[2]}, 가격: {row[3]}, 재고: {row[4]}")
     
     cursor.close()
 
