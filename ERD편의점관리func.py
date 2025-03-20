@@ -40,8 +40,9 @@ def display():
     3. 제품 목록
     4. 주문 목록
     5. 직원 관리
-    6. 매출 조회
-    7. 종료
+    6. 고객 관리
+    7. 장부 조회
+    8. 종료
     ───────────────────────────────────────
     선택할 메뉴 번호를 입력하세요 (뒤로 가기: 0): '''
     
@@ -228,31 +229,55 @@ def list_orders(conn):
 
     cursor.close()
 
+def display_assistants(conn):
+    """ 직원(점원) 목록을 표시하는 함수 (직책 포함) """
+    cursor = conn.cursor()
+    
+    # 📋 직원 목록 가져오기
+    query = "SELECT Assistant_id, Name, Rank FROM Assistant"
+    cursor.execute(query)
+    assistants = cursor.fetchall()
 
-# DB 연결 (본인 환경에 맞게 수정)
-conn = pymysql.connect(
-    host='localhost',
-    user='root',
-    password='yourpassword',
-    database='yourdatabase',
-    charset='utf8mb4'
-)
-cursor = conn.cursor()
+    # 🖥 직원 목록 출력
+    print("\n📌 직원 목록")
+    print("───────────────────────────────────")
+    print(f"{'ID':<5} {'이름':<15} {'직책(Rank)':<15}")
+    print("───────────────────────────────────")
+    for assistant in assistants:
+        print(f"{assistant[0]:<5} {assistant[1]:<15} {assistant[2]:<15}")
+    print("───────────────────────────────────")
 
-# 등급 업데이트 쿼리 실행
-cursor.execute("UPDATE Customers SET Grade = 'VIP' WHERE Costs >= 500000;")
-cursor.execute("UPDATE Customers SET Grade = 'Gold' WHERE Costs >= 200000 AND Costs < 500000;")
-cursor.execute("UPDATE Customers SET Grade = 'Silver' WHERE Costs >= 100000 AND Costs < 200000;")
-cursor.execute("UPDATE Customers SET Grade = 'Bronze' WHERE Costs < 100000;")
+    cursor.close()
 
-# 변경 사항 저장
-conn.commit()
+def display_customers(conn):
+    """ 고객 목록을 표시하고 등급을 업데이트하는 함수 """
+    cursor = conn.cursor()
 
-# 연결 종료
-cursor.close()
-conn.close()
+    # 🔄 등급 업데이트 쿼리 실행 (Costs에 따라 자동 반영)
+    cursor.execute("UPDATE Customers SET Grade = 'VIP' WHERE Costs >= 500000;")
+    cursor.execute("UPDATE Customers SET Grade = 'Gold' WHERE Costs >= 200000 AND Costs < 500000;")
+    cursor.execute("UPDATE Customers SET Grade = 'Silver' WHERE Costs >= 100000 AND Costs < 200000;")
+    cursor.execute("UPDATE Customers SET Grade = 'Bronze' WHERE Costs < 100000;")
+    conn.commit()
+    print("✅ 고객 등급이 최신 상태로 업데이트되었습니다.")
 
-print("고객 등급 업데이트 완료!")
+    # 📋 고객 목록 가져오기
+    query = "SELECT Customer_id, Name, Phone, Email, Address, Grade, Costs FROM Customers"
+    cursor.execute(query)
+    customers = cursor.fetchall()
+
+    # 🖥 고객 목록 출력
+    print("\n📌 고객 목록")
+    print("───────────────────────────────────────────────────────────────")
+    print(f"{'ID':<5} {'이름':<10} {'전화번호':<15} {'이메일':<25} {'주소':<15} {'등급':<8} {'구매 금액':<10}")
+    print("───────────────────────────────────────────────────────────────")
+    for customer in customers:
+        print(f"{customer[0]:<5} {customer[1]:<10} {customer[2]:<15} {customer[3]:<25} {customer[4]:<15} {customer[5]:<8} {customer[6]:<10}")
+    print("───────────────────────────────────────────────────────────────")
+
+    cursor.close()
+
+
 
 if __name__ == "__main__":
     conn = connect()
@@ -269,6 +294,10 @@ if __name__ == "__main__":
                 list_products(conn)
             elif choice == "4":
                 list_orders(conn)
+            elif choice == "5":
+                display_assistants(conn)
+            elif choice == "6":
+                display_customers(conn)
             elif choice == "7":
                 print("🔚 프로그램을 종료합니다.")
                 conn.close()
