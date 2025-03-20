@@ -74,7 +74,7 @@ def update_product(conn, product_name, barcode, price, quantity, expiration_day,
 
 def delete_product(conn, id):
     query = "DELETE FROM products WHERE id = %s"
-    data = (id)
+    data = (id,)
     affected_rows = 0
     try:
         with conn.cursor() as cursor:
@@ -87,7 +87,7 @@ def delete_product(conn, id):
 
 def search_product(conn, product_name):
     query = "SELECT * FROM products WHERE product_name = %s"
-    data = (product_name)
+    data = (product_name,)
     try:
         with conn.cursor() as cursor:
             cursor.execute(query, data)
